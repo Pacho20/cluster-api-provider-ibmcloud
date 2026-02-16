@@ -1489,6 +1489,8 @@ func (s *ClusterScope) createVPCSecurityGroupRules(ctx context.Context, ogSecuri
 	log.V(3).Info("Creating VPC security group rules")
 
 	for _, rule := range ogSecurityGroupRules {
+		normalizeVPCSecurityGroupRule(rule)
+
 		var protocol *string
 		var portMax, portMin *int64
 
