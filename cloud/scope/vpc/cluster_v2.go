@@ -1415,6 +1415,9 @@ func (s *ClusterScopeV2) reconcileSecurityGroupRules(ctx context.Context, securi
 // reconcileSecurityGroupRule will attempt to reconcile a defined SecurityGroupRule, with one or more Remotes, for a SecurityGroup. If the IBM Cloud Security Group contains no Rules, simply attempt to create the defined Rule (via the Remote(s) provided).
 func (s *ClusterScopeV2) reconcileSecurityGroupRule(ctx context.Context, securityGroupID string, securityGroupRule infrav1.VPCSecurityGroupRule) error {
 	log := ctrl.LoggerFrom(ctx)
+
+	normalizeVPCSecurityGroupRule(&securityGroupRule)
+
 	existingSecurityGroupRuleIntfs, _, err := s.VPCClient.ListSecurityGroupRules(&vpcv1.ListSecurityGroupRulesOptions{
 		SecurityGroupID: ptr.To(securityGroupID),
 	})

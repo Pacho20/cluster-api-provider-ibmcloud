@@ -19,6 +19,8 @@ package vpc
 import (
 	"fmt"
 	"strings"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-ibmcloud/api/vpc/v1beta2"
 )
 
 // CRN is a local duplicate of IBM Cloud CRN for parsing and references.
@@ -74,4 +76,24 @@ func parseCRN(s string) (*CRN, error) {
 	}
 
 	return crn, nil
+}
+
+// normalizeVPCSecurityGroupRuleProtocol translates deprecated protocol values to current IBM Cloud VPC SDK values.
+// This ensures backward compatibility with YAMLs using the old 'all' protocol value.
+// The IBM Cloud VPC SDK changed the protocol value from 'all' to 'icmp_tcp_udp'.
+func normalizeVPCSecurityGroupRuleProtocol(protocol infrav1.VPCSecurityGroupRuleProtocol) infrav1.VPCSecurityGroupRuleProtocol {
+	if protocol == infrav1.VPCSecurityGroupRuleProtocolAll {
+		return infrav1.VPCSecurityGroupRuleProtocolIcmpTCPUDP
+	}
+	return protocol
+}
+
+// normalizeVPCSecurityGroupRule normalizes deprecated protocol values in a VPC security group rule.
+func normalizeVPCSecurityGroupRule(rule *infrav1.VPCSecurityGroupRule) {
+	if rule.Destination != nil {
+		rule.Destination.Protocol = normalizeVPCSecurityGroupRuleProtocol(rule.Destination.Protocol)
+	}
+	if rule.Source != nil {
+		rule.Source.Protocol = normalizeVPCSecurityGroupRuleProtocol(rule.Source.Protocol)
+	}
 }
