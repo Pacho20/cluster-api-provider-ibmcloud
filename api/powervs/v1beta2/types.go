@@ -324,7 +324,7 @@ const (
 )
 
 // VPCSecurityGroupRuleProtocol represents the protocols for a Security Group Rule.
-// +kubebuilder:validation:Pattern=`^(any|icmp_tcp_udp|icmp|tcp|udp|ah|esp|gre|ip_in_ip|l2tp|rsvp|sctp|vrrp|number_(?:0|2|3|5|[7-9]|1[0-6]|1[8-9]|[2-3][0-9]|4[0-5]|4[89]|5[2-9]|[6-9][0-9]|10[0-9]|11[0-1]|11[3-4]|11[6-9]|12[0-9]|13[0-1]|13[3-9]|1[4-9][0-9]|2[0-4][0-9]|25[0-5]))$`
+// +kubebuilder:validation:Pattern=`^(any|all|icmp_tcp_udp|icmp|tcp|udp|ah|esp|gre|ip_in_ip|l2tp|rsvp|sctp|vrrp|number_(?:0|2|3|5|[7-9]|1[0-6]|1[8-9]|[2-3][0-9]|4[0-5]|4[89]|5[2-9]|[6-9][0-9]|10[0-9]|11[0-1]|11[3-4]|11[6-9]|12[0-9]|13[0-1]|13[3-9]|1[4-9][0-9]|2[0-4][0-9]|25[0-5]))$`
 type VPCSecurityGroupRuleProtocol string
 
 const (

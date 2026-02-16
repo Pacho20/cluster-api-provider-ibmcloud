@@ -25,7 +25,26 @@ import (
 func (src *IBMPowerVSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.IBMPowerVSCluster)
 
-	return Convert_v1beta2_IBMPowerVSCluster_To_v1beta3_IBMPowerVSCluster(src, dst, nil)
+	if err := Convert_v1beta2_IBMPowerVSCluster_To_v1beta3_IBMPowerVSCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Normalize deprecated 'all' protocol to 'icmp_tcp_udp' in VPC security group rules
+	// The IBM Cloud VPC Go SDK changed from 'all' to 'icmp_tcp_udp'.
+	// This ensures v1beta3 objects only contain the current protocol value.
+	for i := range dst.Spec.VPCSecurityGroups {
+		for j := range dst.Spec.VPCSecurityGroups[i].Rules {
+			rule := dst.Spec.VPCSecurityGroups[i].Rules[j]
+			if rule.Source != nil && rule.Source.Protocol == "all" {
+				rule.Source.Protocol = infrav1.VPCSecurityGroupRuleProtocolIcmpTCPUDP
+			}
+			if rule.Destination != nil && rule.Destination.Protocol == "all" {
+				rule.Destination.Protocol = infrav1.VPCSecurityGroupRuleProtocolIcmpTCPUDP
+			}
+		}
+	}
+
+	return nil
 }
 
 func (dst *IBMPowerVSCluster) ConvertFrom(srcRaw conversion.Hub) error {
