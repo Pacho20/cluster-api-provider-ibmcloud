@@ -47,7 +47,7 @@ spec:
       cidr: ${IBMVPC_WORKER_SUBNET_CIDR:="10.240.1.0/24"}
       zone: ${IBMVPC_ZONE}
     securityGroups:
-    - name: ${CLUSTER_NAME}-controlplane-sg
+    - name: ${CLUSTER_NAME}-lb-sg
       rules:
       - action: allow
         direction: inbound
@@ -58,6 +58,28 @@ spec:
             maximumPort: 6443
           remotes:
           - remoteType: any
+      - action: allow
+        direction: outbound
+        destination:
+          protocol: tcp
+          portRange:
+            minimumPort: 6443
+            maximumPort: 6443
+          remotes:
+          - remoteType: sg
+            securityGroupName: ${CLUSTER_NAME}-controlplane-sg
+    - name: ${CLUSTER_NAME}-controlplane-sg
+      rules:
+      - action: allow
+        direction: inbound
+        source:
+          protocol: tcp
+          portRange:
+            minimumPort: 6443
+            maximumPort: 6443
+          remotes:
+          - remoteType: sg
+            securityGroupName: ${CLUSTER_NAME}-lb-sg
       - action: allow
         direction: inbound
         source:
@@ -78,6 +100,19 @@ spec:
           remotes:
           - remoteType: cidr
             cidrSubnetName: ${CLUSTER_NAME}-controlplane-subnet
+      # Convenience rule: allow ALL traffic between cluster nodes so any CNI works out of the box.
+      # For a production cluster, drop this rule and add only your CNI's required ports instead
+      # (e.g. Calico VXLAN udp/4789 + Typha tcp/5473). The rules above are the Kubernetes baseline;
+      # this broad rule trades tight security for easy try-outs.
+      - action: allow
+        direction: inbound
+        source:
+          protocol: any
+          remotes:
+          - remoteType: cidr
+            cidrSubnetName: ${CLUSTER_NAME}-controlplane-subnet
+          - remoteType: cidr
+            cidrSubnetName: ${CLUSTER_NAME}-worker-subnet
       - action: allow
         direction: outbound
         destination:
@@ -106,6 +141,17 @@ spec:
           remotes:
           - remoteType: cidr
             cidrSubnetName: ${CLUSTER_NAME}-worker-subnet
+      # Convenience rule: allow ALL traffic between cluster nodes (see the note on the control-plane SG).
+      # For a production cluster, drop this rule and use your CNI's specific ports instead.
+      - action: allow
+        direction: inbound
+        source:
+          protocol: any
+          remotes:
+          - remoteType: cidr
+            cidrSubnetName: ${CLUSTER_NAME}-controlplane-subnet
+          - remoteType: cidr
+            cidrSubnetName: ${CLUSTER_NAME}-worker-subnet
       - action: allow
         direction: outbound
         destination:
@@ -118,7 +164,7 @@ spec:
       subnets:
       - name: ${CLUSTER_NAME}-controlplane-subnet
       securityGroups:
-      - name: ${CLUSTER_NAME}-controlplane-sg
+      - name: ${CLUSTER_NAME}-lb-sg
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
