@@ -788,6 +788,7 @@ func autoConvert_v1beta1_VPCVolume_To_v1beta2_VPCVolume(in *VPCVolume, out *v1be
 	out.SizeGiB = in.SizeGiB
 	out.Profile = in.Profile
 	out.Iops = in.Iops
+	out.Bandwidth = in.Bandwidth
 	out.EncryptionKeyCRN = in.EncryptionKeyCRN
 	return nil
 }
@@ -803,6 +804,7 @@ func autoConvert_v1beta2_VPCVolume_To_v1beta1_VPCVolume(in *v1beta2.VPCVolume, o
 	out.SizeGiB = in.SizeGiB
 	out.Profile = in.Profile
 	out.Iops = in.Iops
+	out.Bandwidth = in.Bandwidth
 	out.EncryptionKeyCRN = in.EncryptionKeyCRN
 	return nil
 }
