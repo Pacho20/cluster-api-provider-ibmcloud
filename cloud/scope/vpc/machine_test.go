@@ -1225,12 +1225,23 @@ func TestCreateVolume(t *testing.T) {
 		Status: &pendingState,
 	}
 
+	// customProfile advertises a fixed capacity range that comfortably includes infraVolume's 50 GiB size.
+	customProfile := &vpcv1.VolumeProfile{
+		Name: ptr.To("custom"),
+		Capacity: &vpcv1.VolumeProfileCapacityRange{
+			Min: core.Int64Ptr(10),
+			Max: core.Int64Ptr(16000),
+		},
+	}
+	profileFetchError := errors.New("error while fetching volume profile")
+
 	volumeCreationError := errors.New("error while creating volume")
 	t.Run("Volume creation is successful", func(t *testing.T) {
 		g := NewWithT(t)
 		mockController, mockVPC := setup(t)
 		t.Cleanup(mockController.Finish)
 		scope := setupMachineScope(clusterName, machineName, mockVPC)
+		mockVPC.EXPECT().GetVolumeProfile(gomock.AssignableToTypeOf(&vpcv1.GetVolumeProfileOptions{})).Return(customProfile, nil, nil)
 		mockVPC.EXPECT().CreateVolume(gomock.AssignableToTypeOf(&vpcv1.CreateVolumeOptions{})).Return(&vpcVolume, nil, nil)
 		id, err := scope.CreateVolume(&infraVolume)
 		g.Expect(err).Should(Succeed())
@@ -1242,10 +1253,40 @@ func TestCreateVolume(t *testing.T) {
 		t.Cleanup(mockController.Finish)
 		scope := setupMachineScope(clusterName, machineName, mockVPC)
 		scope.IBMVPCMachine.Status = vpcMachine.Status
+		mockVPC.EXPECT().GetVolumeProfile(gomock.AssignableToTypeOf(&vpcv1.GetVolumeProfileOptions{})).Return(customProfile, nil, nil)
 		mockVPC.EXPECT().CreateVolume(gomock.AssignableToTypeOf(&vpcv1.CreateVolumeOptions{})).Return(nil, nil, volumeCreationError)
 		id, err := scope.CreateVolume(&infraVolume)
 		g.Expect(err).ShouldNot(Succeed())
 		g.Expect(errors.Is(err, volumeCreationError)).To(BeTrue())
+		g.Expect(id).To(BeZero())
+	})
+	t.Run("Volume creation fails when size is outside the profile capacity range", func(t *testing.T) {
+		g := NewWithT(t)
+		mockController, mockVPC := setup(t)
+		t.Cleanup(mockController.Finish)
+		scope := setupMachineScope(clusterName, machineName, mockVPC)
+		oversizedProfile := &vpcv1.VolumeProfile{
+			Name: ptr.To("custom"),
+			Capacity: &vpcv1.VolumeProfileCapacityRange{
+				Min: core.Int64Ptr(10),
+				Max: core.Int64Ptr(40),
+			},
+		}
+		mockVPC.EXPECT().GetVolumeProfile(gomock.AssignableToTypeOf(&vpcv1.GetVolumeProfileOptions{})).Return(oversizedProfile, nil, nil)
+		id, err := scope.CreateVolume(&infraVolume)
+		g.Expect(err).ShouldNot(Succeed())
+		g.Expect(err.Error()).To(ContainSubstring("outside the valid range"))
+		g.Expect(id).To(BeZero())
+	})
+	t.Run("Volume creation fails when the profile cannot be fetched", func(t *testing.T) {
+		g := NewWithT(t)
+		mockController, mockVPC := setup(t)
+		t.Cleanup(mockController.Finish)
+		scope := setupMachineScope(clusterName, machineName, mockVPC)
+		mockVPC.EXPECT().GetVolumeProfile(gomock.AssignableToTypeOf(&vpcv1.GetVolumeProfileOptions{})).Return(nil, nil, profileFetchError)
+		id, err := scope.CreateVolume(&infraVolume)
+		g.Expect(err).ShouldNot(Succeed())
+		g.Expect(errors.Is(err, profileFetchError)).To(BeTrue())
 		g.Expect(id).To(BeZero())
 	})
 }

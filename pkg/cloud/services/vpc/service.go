@@ -546,6 +546,11 @@ func (s *Service) GetVolume(options *vpcv1.GetVolumeOptions) (result *vpcv1.Volu
 	return s.vpcService.GetVolume(options)
 }
 
+// GetVolumeProfile fetches the given volume profile, including its capacity, iops and bandwidth limits.
+func (s *Service) GetVolumeProfile(options *vpcv1.GetVolumeProfileOptions) (result *vpcv1.VolumeProfile, response *core.DetailedResponse, err error) {
+	return s.vpcService.GetVolumeProfile(options)
+}
+
 // NewService returns a new VPC Service.
 func NewService(svcEndpoint string) (Vpc, error) {
 	service := &Service{}

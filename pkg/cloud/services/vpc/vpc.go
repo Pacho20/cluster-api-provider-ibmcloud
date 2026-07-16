@@ -77,4 +77,5 @@ type Vpc interface {
 	AttachVolumeToInstance(options *vpcv1.CreateInstanceVolumeAttachmentOptions) (*vpcv1.VolumeAttachment, *core.DetailedResponse, error)
 	GetVolumeAttachments(options *vpcv1.ListInstanceVolumeAttachmentsOptions) (result *vpcv1.VolumeAttachmentCollection, response *core.DetailedResponse, err error)
 	GetVolume(options *vpcv1.GetVolumeOptions) (result *vpcv1.Volume, response *core.DetailedResponse, err error)
+	GetVolumeProfile(options *vpcv1.GetVolumeProfileOptions) (result *vpcv1.VolumeProfile, response *core.DetailedResponse, err error)
 }

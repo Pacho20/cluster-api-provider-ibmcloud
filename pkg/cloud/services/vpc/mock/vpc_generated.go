@@ -664,6 +664,22 @@ func (mr *MockVpcMockRecorder) GetVolumeAttachments(options any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVolumeAttachments", reflect.TypeOf((*MockVpc)(nil).GetVolumeAttachments), options)
 }
 
+// GetVolumeProfile mocks base method.
+func (m *MockVpc) GetVolumeProfile(options *vpcv1.GetVolumeProfileOptions) (*vpcv1.VolumeProfile, *core.DetailedResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVolumeProfile", options)
+	ret0, _ := ret[0].(*vpcv1.VolumeProfile)
+	ret1, _ := ret[1].(*core.DetailedResponse)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetVolumeProfile indicates an expected call of GetVolumeProfile.
+func (mr *MockVpcMockRecorder) GetVolumeProfile(options any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVolumeProfile", reflect.TypeOf((*MockVpc)(nil).GetVolumeProfile), options)
+}
+
 // ListImages mocks base method.
 func (m *MockVpc) ListImages(options *vpcv1.ListImagesOptions) (*vpcv1.ImageCollection, *core.DetailedResponse, error) {
 	m.ctrl.T.Helper()

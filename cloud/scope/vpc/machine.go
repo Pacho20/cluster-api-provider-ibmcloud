@@ -1193,6 +1193,12 @@ func (m *MachineScope) GetVolumeState(volumeID string) (string, error) {
 
 // CreateVolume creates a new Volume and attaches it to the instance.
 func (m *MachineScope) CreateVolume(vpcVolume *infrav1.VPCVolume) (string, error) {
+	// Validate the requested size against the profile-specific capacity range. Unlike boot volumes, data volumes
+	// have no fixed maximum size; the limit depends on the selected volume profile, so it is fetched at runtime.
+	if err := m.validateVolumeSizeForProfile(vpcVolume); err != nil {
+		return "", err
+	}
+
 	volumeOptions := vpcv1.CreateVolumeOptions{}
 	var resourceGroupID string
 	if m.IBMVPCCluster.Status.ResourceGroup != nil {
@@ -1233,6 +1239,58 @@ func (m *MachineScope) CreateVolume(vpcVolume *infrav1.VPCVolume) (string, error
 	}
 
 	return *volumeResult.ID, nil
+}
+
+// validateVolumeSizeForProfile ensures the requested volume size falls within the capacity range advertised by the
+// selected volume profile. Profiles whose capacity range cannot be determined statically are skipped, deferring the
+// size validation to the VPC API.
+func (m *MachineScope) validateVolumeSizeForProfile(vpcVolume *infrav1.VPCVolume) error {
+	if vpcVolume.Profile == "" {
+		// An empty profile defaults to general-purpose server-side; there is nothing to validate here.
+		return nil
+	}
+
+	profile, _, err := m.IBMVPCClient.GetVolumeProfile(&vpcv1.GetVolumeProfileOptions{
+		Name: &vpcVolume.Profile,
+	})
+	if err != nil {
+		return fmt.Errorf("error while fetching volume profile %q: %w", vpcVolume.Profile, err)
+	}
+
+	minSize, maxSize, ok := volumeProfileCapacityBounds(profile.Capacity)
+	if !ok {
+		// The profile does not advertise a fixed capacity range; leave validation to the VPC API.
+		return nil
+	}
+
+	if vpcVolume.SizeGiB < minSize || vpcVolume.SizeGiB > maxSize {
+		return fmt.Errorf("volume size %d GiB is outside the valid range %d - %d GiB for profile %q", vpcVolume.SizeGiB, minSize, maxSize, vpcVolume.Profile)
+	}
+
+	return nil
+}
+
+// volumeProfileCapacityBounds returns the inclusive [min, max] capacity in GiB permitted by a volume profile. The
+// boolean is false when the profile does not expose a fixed range (e.g. an enum or runtime-dependent capacity), in
+// which case the caller should defer to the VPC API for validation.
+func volumeProfileCapacityBounds(capacity vpcv1.VolumeProfileCapacityIntf) (minSize int64, maxSize int64, ok bool) {
+	switch c := capacity.(type) {
+	case *vpcv1.VolumeProfileCapacityRange:
+		return *c.Min, *c.Max, true
+	case *vpcv1.VolumeProfileCapacityDependentRange:
+		return *c.Min, *c.Max, true
+	case *vpcv1.VolumeProfileCapacityFixed:
+		return *c.Value, *c.Value, true
+	case *vpcv1.VolumeProfileCapacity:
+		// Generic parent type, used when the concrete variant is not one of the above.
+		switch {
+		case c.Min != nil && c.Max != nil:
+			return *c.Min, *c.Max, true
+		case c.Value != nil:
+			return *c.Value, *c.Value, true
+		}
+	}
+	return 0, 0, false
 }
 
 // AttachVolume attaches the given volume to the instance.
