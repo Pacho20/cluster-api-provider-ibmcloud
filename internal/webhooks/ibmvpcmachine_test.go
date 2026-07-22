@@ -63,6 +63,102 @@ func TestIBMVPCMachine_Create(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Create a IBMVPCMachine with a sdp BootVolume specifying iops and bandwidth",
+			machine: &infrav1.IBMVPCMachine{
+				Spec: infrav1.IBMVPCMachineSpec{
+					BootVolume: &infrav1.VPCVolume{
+						Profile:   "sdp",
+						SizeGiB:   100,
+						Iops:      3000,
+						Bandwidth: 1000,
+					},
+					Image: &infrav1.IBMVPCResourceReference{},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Create a IBMVPCMachine with a sdp BootVolume larger than the first-generation limit",
+			machine: &infrav1.IBMVPCMachine{
+				Spec: infrav1.IBMVPCMachineSpec{
+					BootVolume: &infrav1.VPCVolume{
+						Profile: "sdp",
+						SizeGiB: 16000,
+					},
+					Image: &infrav1.IBMVPCResourceReference{},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Create a IBMVPCMachine with a sdp BootVolume exceeding the sdp size limit",
+			machine: &infrav1.IBMVPCMachine{
+				Spec: infrav1.IBMVPCMachineSpec{
+					BootVolume: &infrav1.VPCVolume{
+						Profile: "sdp",
+						SizeGiB: 32001,
+					},
+					Image: &infrav1.IBMVPCResourceReference{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Create a IBMVPCMachine with a general-purpose BootVolume exceeding the first-generation size limit",
+			machine: &infrav1.IBMVPCMachine{
+				Spec: infrav1.IBMVPCMachineSpec{
+					BootVolume: &infrav1.VPCVolume{
+						Profile: "general-purpose",
+						SizeGiB: 251,
+					},
+					Image: &infrav1.IBMVPCResourceReference{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Create a IBMVPCMachine with bandwidth on a non-sdp BootVolume",
+			machine: &infrav1.IBMVPCMachine{
+				Spec: infrav1.IBMVPCMachineSpec{
+					BootVolume: &infrav1.VPCVolume{
+						Profile:   "custom",
+						SizeGiB:   100,
+						Iops:      3000,
+						Bandwidth: 1000,
+					},
+					Image: &infrav1.IBMVPCResourceReference{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Create a IBMVPCMachine with iops on a profile that does not support it",
+			machine: &infrav1.IBMVPCMachine{
+				Spec: infrav1.IBMVPCMachineSpec{
+					BootVolume: &infrav1.VPCVolume{
+						Profile: "general-purpose",
+						SizeGiB: 100,
+						Iops:    3000,
+					},
+					Image: &infrav1.IBMVPCResourceReference{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Create a IBMVPCMachine with an unknown BootVolume profile",
+			machine: &infrav1.IBMVPCMachine{
+				Spec: infrav1.IBMVPCMachineSpec{
+					BootVolume: &infrav1.VPCVolume{
+						Profile: "not-a-real-profile",
+						SizeGiB: 100,
+					},
+					Image: &infrav1.IBMVPCResourceReference{},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
